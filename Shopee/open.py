@@ -13,7 +13,7 @@ import re
 
 path_root = "https://shopee.vn"
 list_link = []
-file_name_collected_link = "collected_link.txt"
+file_name_collected_link = "collected_link.crash"
 # link da collect data 
 collected_link = []
 
@@ -53,7 +53,36 @@ class ShoopeCr:
             link_products.append(a.get_attribute("href"))
         return link_products
 
-
+    def get_numOf_Comments(self,str_num,type):
+        if str_num.isdigit():
+            return int(str_num)
+        if type == 2:
+            out = re.compile("\(.+\)")
+            m = out.search(str_num)
+            tmp = m.group().strip('()')
+            if tmp.isdigit():
+                return int(tmp)
+            else:
+                if ',' in tmp :
+                    tmp = tmp.strip('k')
+                    l = tmp.split(',')
+                    num = int(l[0]) * 1000 + int(l[1]) * 10 ** (3 - len(l[1]))
+                    return num
+                else :
+                    tmp = tmp.strip('k')
+                    return int(tmp) * 1000
+        if type == 1:
+             if str_num.isdigit():
+                return int(str_num)
+             else:
+                if ',' in str_num :
+                    str_num = str_num.strip('k')
+                    l = str_num.split(',')
+                    num = int(l[0]) * 1000 + int(l[1]) * 10 ** (3 - len(l[1]))
+                    return num
+                else :
+                    str_num = str_num.strip('k')
+                    return int(str_num) * 1000
     def get_comments(self,url_product):
         self.request_html(url_product)
         self.driver.implicitly_wait(10)
@@ -63,24 +92,26 @@ class ShoopeCr:
             comments = []
             if self.driver.find_elements_by_class_name("_3Oj5_n") != []:
                 if len(self.driver.find_elements_by_class_name("_3Oj5_n")) == 2:
-                    total_comments = int(self.driver.find_elements_by_class_name("_3Oj5_n")[1].text)
+                    total_comments = self.get_numOf_Comments(self.driver.find_elements_by_class_name("_3Oj5_n")[1].text,1)
                 if total_comments != 0 :
                     self.driver.find_elements_by_class_name("_1_WXLA")[1].click()
                 else :
-                    return 1
+                    return 0
             else :
-                return 1
+                return 0
             if self.driver.find_elements_by_class_name("product-rating-overview__filter--with-comment") != []:
                 BL = self.driver.find_elements_by_class_name("product-rating-overview__filter--with-comment")[0].text
             else :
-                return 1
-            numOfBL = int(re.findall('\d+',BL)[0])
+                return 0
+            numOfBL = self.get_numOf_Comments(BL,2)
             print(numOfBL)
             if numOfBL != 0:
                 time.sleep(2)
                 count_comments = 0
                 while True:
                     self.driver.implicitly_wait(7)
+                    if self.driver.find_elements_by_class_name("shopee-product-rating__content") == []:
+                        break
                     comments_tag = self.driver.find_elements_by_class_name("shopee-product-rating__content")
                     for x in comments_tag :
                         if x.text != "":
@@ -96,14 +127,14 @@ class ShoopeCr:
                         break
                     time.sleep(2)
                 print(comments)
-                self.save_data("data.crash",comments)
+                if comments != [] :
+                    self.save_data("data.crash",comments)
             return 1
 
     def auto_get_comments(self,sub_catagory_link):
         link_products = self.get_products_from_catagory(sub_catagory_link)
         for link in link_products:
             if link != None and link not in collected_link:
-                collected_link.append(link)
                 self.get_comments(link)
                 time.sleep(5)
     def wait_time(self,t):
@@ -147,7 +178,6 @@ class ShoopeCr:
             print("An error has been raised")
             sys.exit()
 
-
     def close_driver(self):
         time.sleep(10)
         self.driver.quit()
@@ -162,16 +192,16 @@ def read_file(fileJS_name):
     return data
 
 def save_link_collected(filename, ll):
-    with open( filename, 'w') as fw:
-        for x in ll:
-            fw.writelines(x)
+    data = json.dumps(ll,indent = 4)
+    with open( filename, 'w',encoding = 'utf-8') as fw:
+        fw.write(data)
     fw.close()
 def read_link_collected(filename):
-    collected_link = []
-    with open(filename,'r') as fr:
-        collected_link = fr.readlines()
+    data = {}
+    with open(filename,'r',encoding = 'utf-8') as fr:
+        data = json.load(fr)
     fr.close()
-    return collected_link
+    return data
 def main():
     collected_link = read_link_collected(file_name_collected_link)
     Shopee = ShoopeCr()
@@ -182,8 +212,9 @@ def main():
         if l == None :
             continue
         for ls in l :
-            Shopee.auto_get_comments(ls)
-            if collected_link != [] :
+            if ls != None and ls not in collected_link:
+                collected_link.append(ls)
+                Shopee.auto_get_comments(ls)
                 save_link_collected(file_name_collected_link,collected_link)
     Shopee.close_driver()
 if __name__ == "__main__":
