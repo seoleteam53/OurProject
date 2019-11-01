@@ -47,8 +47,10 @@ class ShoopeCr:
     def get_products_from_catagory(self,url_catagory):
         self.request_html(url_catagory)
         link_products = []
-        aTag = self.driver.find_elements_by_class_name("shopee-search-item-result__items")[0].find_elements_by_tag_name("a")
-        print(len(aTag))
+        if self.driver.find_elements_by_class_name("shopee-search-item-result__items") != []:
+            aTag = self.driver.find_elements_by_class_name("shopee-search-item-result__items")[0].find_elements_by_tag_name("a")
+        else :
+            return []
         for a in aTag:
             link_products.append(a.get_attribute("href"))
         return link_products
