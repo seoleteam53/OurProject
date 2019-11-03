@@ -85,7 +85,7 @@ class ShoopeCr:
                 else :
                     str_num = str_num.strip('k')
                     return int(str_num) * 1000
-    def get_comments(self,url_product):
+    def get_comments(self,url_product,file_name):
         self.request_html(url_product)
         self.driver.implicitly_wait(10)
         time.sleep(2)
@@ -130,14 +130,19 @@ class ShoopeCr:
                     time.sleep(2)
                 print(comments)
                 if comments != [] :
-                    self.save_data("data.crash",comments)
+                    self.save_data(file_name,comments)
             return 1
 
     def auto_get_comments(self,sub_catagory_link):
         link_products = self.get_products_from_catagory(sub_catagory_link)
+        subTag_Active = self.driver.find_elements_by_class_name("shopee-category-list__sub-category--active")
+        file_name = ""
+        if subTag_Active != []:
+            file_name = "data\\"+ ''.join(subTag_Active[0].text.split()) + ".crash"
+        print(file_name)
         for link in link_products:
             if link != None and link not in collected_link:
-                self.get_comments(link)
+                self.get_comments(link,file_name)
                 time.sleep(5)
     def wait_time(self,t):
         #self.driver.implicitly_wait(t)
