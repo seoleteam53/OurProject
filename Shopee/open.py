@@ -138,12 +138,15 @@ class ShoopeCr:
         subTag_Active = self.driver.find_elements_by_class_name("shopee-category-list__sub-category--active")
         file_name = ""
         if subTag_Active != []:
-            file_name = "data\\"+ ''.join(subTag_Active[0].text.split()) + ".crash"
+            file_name = "data\\"+ ''.join(re.findall('(\w+)',''.join(subTag_Active[0].text.split()))) + ".crash"
+        else:
+            return 0
         print(file_name)
         for link in link_products:
-            if link != None and link not in collected_link:
+            if link != None:
                 self.get_comments(link,file_name)
                 time.sleep(5)
+        return 1
     def wait_time(self,t):
         #self.driver.implicitly_wait(t)
         time.sleep(t)
@@ -221,8 +224,9 @@ def main():
         for ls in l :
             if ls != None and ls not in collected_link:
                 collected_link.append(ls)
-                Shopee.auto_get_comments(ls)
-                save_link_collected(file_name_collected_link,collected_link)
+                i = Shopee.auto_get_comments(ls)
+                if i != 0 :
+                    save_link_collected(file_name_collected_link,collected_link)
     Shopee.close_driver()
 if __name__ == "__main__":
     main()
